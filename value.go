@@ -37,6 +37,17 @@
 // HCL has a single number type; this package narrows an integral number to int64
 // and a fractional one to float64 so the host materialises Integer vs Float
 // naturally, exactly as it does for the TOML and JSON backends.
+//
+// # Expression AST view
+//
+// [Parse] yields structure with expressions left unevaluated, and [Eval] yields
+// fully-evaluated values; neither exposes the *shape* of an expression. For
+// tools that read expression structure without evaluating it — a transpiler
+// emitting another language, for instance — [Attribute.Expression] returns a
+// read-only, exported [Expr] tree ([LiteralExpr], [BinaryExpr], [ForObjectExpr],
+// …). [Expr] is a sealed interface, so the concrete node types in this package
+// are the exhaustive set a consumer can type-switch over. The exported tree is a
+// fresh view; the internal nodes and the [Eval] path are unaffected.
 package hcl2
 
 // Value is the interface satisfied by every value this package handles. It is
