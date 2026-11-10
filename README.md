@@ -23,12 +23,39 @@ of [go-ruby-yaml](https://github.com/go-ruby-yaml/yaml) (the Psych engine),
 [go-ruby-regexp](https://github.com/go-ruby-regexp/regexp) (the Onigmo engine).
 
 > **Faithfulness.** There is no canonical Ruby HCL gem to mirror, so this package
-> is faithful to the **HCL2 native-syntax specification** (the `hashicorp/hcl` v2
-> grammar), not to a gem. It is a clean-room pure-Go implementation mirroring the
-> structure and semantics of the org's from-scratch C reference,
-> [`libhcl/c-hcl2`](https://github.com/libhcl/c-hcl2); **nothing from
+> follows the **HCL2 native-syntax grammar** (`hashicorp/hcl` v2) but evaluates it
+> into the **Ruby value model**, intentionally diverging from `cty` semantics
+> where Ruby and `cty` disagree (see [Relationship to
+> `hashicorp/hcl`](#relationship-to-hashicorphcl)). It is a clean-room pure-Go
+> implementation mirroring the structure and semantics of the org's from-scratch C
+> reference, [`libhcl/c-hcl2`](https://github.com/libhcl/c-hcl2); **nothing from
 > `hashicorp/hcl` is vendored** — *être capable de compiler depuis les sources est
 > un gage d'indépendance.*
+
+## Relationship to `hashicorp/hcl`
+
+This is **not** a wrapper over `github.com/hashicorp/hcl/v2` + `zclconf/go-cty`,
+and it deliberately does not try to be one: the Ruby value model this package
+exists to produce is **structurally incompatible with `cty`**, so the reference
+evaluation engine cannot back it. Two evaluated behaviours the test suite asserts
+have no `cty` equivalent:
+
+- **String `+` concatenation** — `"a" + "b"` → `"ab"` (Ruby `String#+`). `cty`'s
+  `+` operator is numeric-only and *rejects* string operands
+  (`Unsuitable value for left operand: a number is required`).
+- **Insertion-ordered objects** — `{z = 1, a = 2}` and
+  `{for k, v in {z = 1, a = 2} : k => v}` keep key order `[z, a]` (a Ruby `Hash`).
+  `cty.Object` is unordered: its element iterator yields keys **sorted**
+  (`[a, z]`), and for a `for`-object the order is discarded during evaluation and
+  is unrecoverable from the AST.
+
+Both were confirmed by a control program run against `hashicorp/hcl/v2 v2.24.0`
+and `zclconf/go-cty v1.19.0`. Because the value model — not just the surface API —
+must differ from `cty`, a from-scratch HCL2 engine for Ruby is justified here
+(the same reasoning as [`go-ruby-regexp`](https://github.com/go-ruby-regexp/regexp),
+whose Onigmo semantics diverge from Go's `regexp`). Go consumers that need
+*spec* HCL2 with `cty` semantics — and no Ruby idioms — should depend on
+`hashicorp/hcl/v2` directly rather than on this package.
 
 ## Features
 
